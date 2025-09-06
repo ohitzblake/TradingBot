@@ -17,12 +17,15 @@ from config import *
 
 # Optional: Import OpenAI for API calls
 try:
-    import openai
+    from openai import OpenAI
     OPENAI_AVAILABLE = True
     if OPENAI_API_KEY:
-        openai.api_key = OPENAI_API_KEY
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    else:
+        openai_client = None
 except ImportError:
     OPENAI_AVAILABLE = False
+    openai_client = None
 
 # Import trading strategies for fallback
 from strategies import (
@@ -128,7 +131,7 @@ def get_price(symbol: str) -> Optional[float]:
 # Function to get AI-powered trading signals
 def get_ai_trading_signal(symbol: str, strategy: str) -> Tuple[str, float]:
     # If OpenAI is available and configured, use it
-    if OPENAI_AVAILABLE and OPENAI_API_KEY:
+    if OPENAI_AVAILABLE and openai_client:
         try:
             # Create a prompt for the OpenAI API
             prompt = f"""Based on current market conditions for {symbol}, provide a trading signal.
@@ -139,7 +142,7 @@ def get_ai_trading_signal(symbol: str, strategy: str) -> Tuple[str, float]:
             Only respond with the JSON object, nothing else."""
             
             # Call OpenAI API
-            response = openai.ChatCompletion.create(
+            response = openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "system", "content": "You are a trading assistant that provides signals based on market analysis."},
                           {"role": "user", "content": prompt}],
@@ -168,7 +171,7 @@ def get_ai_trading_signal(symbol: str, strategy: str) -> Tuple[str, float]:
 # Function to get AI-generated news
 def get_ai_news(coin: str) -> List[str]:
     # If OpenAI is available and configured, use it
-    if OPENAI_AVAILABLE and OPENAI_API_KEY:
+    if OPENAI_AVAILABLE and openai_client:
         try:
             # Create a prompt for the OpenAI API
             prompt = f"""Generate 3 recent and realistic sounding news headlines about {coin} cryptocurrency.
@@ -179,7 +182,7 @@ def get_ai_news(coin: str) -> List[str]:
             Only respond with the JSON array, nothing else."""
             
             # Call OpenAI API
-            response = openai.ChatCompletion.create(
+            response = openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "system", "content": "You are a financial news assistant that provides the latest cryptocurrency news."},
                           {"role": "user", "content": prompt}],
