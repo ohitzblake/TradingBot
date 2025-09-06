@@ -4,4 +4,5 @@ requests
 python-dotenv
 websockets
 openai
+setuptools
 numpy==1.24.3
