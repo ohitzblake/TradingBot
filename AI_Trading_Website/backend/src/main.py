@@ -11,6 +11,9 @@ import numpy as np
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 
+# Import configuration
+from config import *
+
 # Import trading strategies
 from strategies import (
     detect_fvg,
@@ -28,7 +31,7 @@ app = FastAPI(title="AI Trading Website")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,8 +91,12 @@ async def websocket_endpoint(websocket: WebSocket):
 # Function to get candlestick data
 def get_klines(symbol: str, interval: str) -> List[Dict]:
     url = f'https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit=100'
+    headers = {}
+    if BINANCE_API_KEY:
+        headers['X-MBX-APIKEY'] = BINANCE_API_KEY
+    
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         data = response.json()
         klines = [{
@@ -108,8 +115,12 @@ def get_klines(symbol: str, interval: str) -> List[Dict]:
 # Function to get current price
 def get_price(symbol: str) -> Optional[float]:
     url = f'https://api.binance.com/api/v3/ticker/price?symbol={symbol}'
+    headers = {}
+    if BINANCE_API_KEY:
+        headers['X-MBX-APIKEY'] = BINANCE_API_KEY
+        
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         data = response.json()
         return float(data['price'])
@@ -119,7 +130,32 @@ def get_price(symbol: str) -> Optional[float]:
 
 # Function to get news
 def get_news(coin: str) -> List[str]:
-    # This is a placeholder. In a real application, you would use a proper news API
+    # Use NEWS_API_KEY if available, otherwise fallback to CoinGecko
+    if NEWS_API_KEY:
+        try:
+            # Use a proper news API with the key
+            url = f"https://newsapi.org/v2/everything?q={coin}&apiKey={NEWS_API_KEY}&pageSize=5"
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            articles = data.get('articles', [])
+            news_texts = []
+            
+            for article in articles[:5]:
+                title = article.get('title', 'No title')
+                source = article.get('source', {}).get('name', 'Unknown')
+                news_texts.append(f"{title} ({source})")
+                
+            if not news_texts:
+                return ["No recent news available."]
+                
+            return news_texts
+        except Exception as e:
+            print(f"Error fetching news from NewsAPI: {e}")
+            # Fall back to CoinGecko if NewsAPI fails
+    
+    # Fallback to CoinGecko
     try:
         url = f"https://api.coingecko.com/api/v3/coins/{coin.lower()}/status_updates"
         response = requests.get(url, timeout=10)
@@ -139,9 +175,9 @@ def get_news(coin: str) -> List[str]:
             
         return news_texts
     except Exception as e:
-        print(f"Error fetching news: {e}")
+        print(f"Error fetching news from CoinGecko: {e}")
         return ["Unable to fetch news."]
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host=API_HOST, port=API_PORT, reload=True)

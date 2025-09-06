@@ -60,7 +60,13 @@ pip install -r requirements.txt
 
 3. Configure environment variables:
 
-Edit the `.env` file in the backend directory with your API keys.
+The backend `.env` file contains the following API keys:
+
+- `BINANCE_API_KEY` and `BINANCE_API_SECRET`: For accessing Binance cryptocurrency data
+- `ALPACA_API_KEY` and `ALPACA_API_SECRET`: For accessing Alpaca stock market data (optional)
+- `NEWS_API_KEY`: For fetching market news from NewsAPI
+
+For development purposes, the repository includes generated placeholder API keys. For production use, replace these with actual API keys from the respective services.
 
 4. Start the backend server:
 
