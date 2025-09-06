@@ -1,0 +1,39 @@
+{
+  "name": "ai-trading-website",
+  "version": "1.0.0",
+  "description": "AI Trading Website with real-time market analysis",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.16",
+    "@mui/material": "^5.14.16",
+    "axios": "^1.6.0",
+    "chart.js": "^4.4.0",
+    "lightweight-charts": "^4.1.0",
+    "next": "^14.0.1",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-gauge-chart": "^0.4.1",
+    "react-icons": "^4.11.0",
+    "react-toastify": "^9.1.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.10",
+    "@types/react": "^18.2.36",
+    "@types/react-dom": "^18.2.14",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.53.0",
+    "eslint-config-next": "^14.0.1",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2"
+  }
+}
