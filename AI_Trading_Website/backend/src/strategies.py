@@ -1,5 +1,3 @@
-import numpy as np
-import pandas as pd
 from typing import Dict, List, Tuple, Optional
 
 # Function to detect Fair Value Gaps (FVG)
@@ -23,16 +21,18 @@ def check_liquidity_zone(price: float, liquidity_zones: List[float], threshold: 
 
 # Function to calculate RSI (Relative Strength Index)
 def calculate_rsi(closes: List[float], period: int = 14) -> List[float]:
-    closes_array = np.array(closes)
-    deltas = np.diff(closes_array)
-    seed = deltas[:period+1]
-    up = seed[seed >= 0].sum()/period
-    down = -seed[seed < 0].sum()/period
+    if len(closes) < period + 1:
+        return [50.0] * len(closes)  # Return neutral RSI if not enough data
+    
+    deltas = [closes[i] - closes[i-1] for i in range(1, len(closes))]
+    seed = deltas[:period]
+    up = sum(d for d in seed if d >= 0) / period
+    down = -sum(d for d in seed if d < 0) / period
     rs = up/down if down != 0 else 0
-    rsi = np.zeros_like(closes_array)
-    rsi[:period] = 100. - 100./(1. + rs)
+    rsi = [0.0] * len(closes)
+    rsi[:period] = [100. - 100./(1. + rs)] * period
 
-    for i in range(period, len(closes_array)):
+    for i in range(period, len(closes)):
         delta = deltas[i-1]
         if delta > 0:
             upval = delta
@@ -46,26 +46,56 @@ def calculate_rsi(closes: List[float], period: int = 14) -> List[float]:
         rs = up/down if down != 0 else 0
         rsi[i] = 100. - 100./(1. + rs)
 
-    return rsi.tolist()
+    return rsi
 
 # Function to calculate MACD (Moving Average Convergence Divergence)
 def calculate_macd(closes: List[float], fast_period: int = 12, slow_period: int = 26, signal_period: int = 9) -> Tuple[List[float], List[float], List[float]]:
-    closes_array = np.array(closes)
-    exp1 = pd.Series(closes_array).ewm(span=fast_period, adjust=False).mean()
-    exp2 = pd.Series(closes_array).ewm(span=slow_period, adjust=False).mean()
-    macd = exp1 - exp2
-    signal = macd.ewm(span=signal_period, adjust=False).mean()
-    histogram = macd - signal
-    return macd.tolist(), signal.tolist(), histogram.tolist()
+    if len(closes) < max(fast_period, slow_period):
+        return [0.0] * len(closes), [0.0] * len(closes), [0.0] * len(closes)
+    
+    # Calculate EMA
+    def calculate_ema(data: List[float], period: int) -> List[float]:
+        ema = [0.0] * len(data)
+        multiplier = 2 / (period + 1)
+        ema[0] = data[0]
+        for i in range(1, len(data)):
+            ema[i] = (data[i] * multiplier) + (ema[i-1] * (1 - multiplier))
+        return ema
+    
+    fast_ema = calculate_ema(closes, fast_period)
+    slow_ema = calculate_ema(closes, slow_period)
+    macd = [fast_ema[i] - slow_ema[i] for i in range(len(closes))]
+    signal = calculate_ema(macd, signal_period)
+    histogram = [macd[i] - signal[i] for i in range(len(macd))]
+    return macd, signal, histogram
 
 # Function to calculate Bollinger Bands
 def calculate_bollinger_bands(closes: List[float], period: int = 20, num_std_dev: float = 2.0) -> Tuple[List[float], List[float], List[float]]:
-    closes_array = np.array(closes)
-    middle_band = pd.Series(closes_array).rolling(window=period).mean()
-    std_dev = pd.Series(closes_array).rolling(window=period).std()
-    upper_band = middle_band + (std_dev * num_std_dev)
-    lower_band = middle_band - (std_dev * num_std_dev)
-    return upper_band.tolist(), middle_band.tolist(), lower_band.tolist()
+    if len(closes) < period:
+        return closes[:], closes[:], closes[:]
+    
+    upper_band = []
+    middle_band = []
+    lower_band = []
+    
+    for i in range(len(closes)):
+        if i < period - 1:
+            # Not enough data for full calculation
+            upper_band.append(closes[i])
+            middle_band.append(closes[i])
+            lower_band.append(closes[i])
+        else:
+            # Calculate SMA and standard deviation for the period
+            window = closes[i-period+1:i+1]
+            sma = sum(window) / period
+            variance = sum((x - sma) ** 2 for x in window) / period
+            std_dev = variance ** 0.5
+            
+            upper_band.append(sma + (std_dev * num_std_dev))
+            middle_band.append(sma)
+            lower_band.append(sma - (std_dev * num_std_dev))
+    
+    return upper_band, middle_band, lower_band
 
 # Function to analyze trade signals based on selected strategy
 def analyze_trade_signal(klines: List[Dict], strategy: str = "fvg_liquidity") -> Tuple[str, float]:
